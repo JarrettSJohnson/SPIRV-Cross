@@ -11698,6 +11698,13 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 			arg.alias_global_variable = true;
 			decl += join(", ", argument_decl(arg), " [[payload]]");
 		}
+		ir.for_each_typed_id<SPIRVariable>([&](uint32_t, SPIRVariable &var) {
+			if (var.storage != StorageClassIncomingRayPayloadKHR) {
+				return;
+			}
+			auto &type = get_variable_data_type(var);
+			decl += join("thread ", type_to_glsl(type), "& ", to_name(var.self));
+		});
 	}
 
 	for (auto &arg : func.arguments)
@@ -13836,6 +13843,9 @@ string CompilerMSL::func_type_decl(SPIRType &type)
 		break;
 	case ExecutionModelTaskEXT:
 		entry_type = "[[object]]";
+		break;
+	case ExecutionModelMissKHR:
+		entry_type = "[[stitchable]]";
 		break;
 	default:
 		entry_type = "unknown";
