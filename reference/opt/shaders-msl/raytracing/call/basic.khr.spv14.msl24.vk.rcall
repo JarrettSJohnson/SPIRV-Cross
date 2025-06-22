@@ -1,0 +1,10 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+[[stitchable]] void main0(thread float3& outColor)
+{
+    outColor = float3(1.0, 2.0, 3.0);
+}
+
