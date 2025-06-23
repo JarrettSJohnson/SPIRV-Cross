@@ -18497,11 +18497,11 @@ void CompilerGLSL::emit_block_chain(SPIRBlock &block)
 	}
 
 	case SPIRBlock::IgnoreIntersection:
-		statement("ignoreIntersectionEXT;");
+		emit_ignore_intersection(block);
 		break;
 
 	case SPIRBlock::TerminateRay:
-		statement("terminateRayEXT;");
+		emit_terminate_ray(block);
 		break;
 
 	case SPIRBlock::EmitMeshTasks:
@@ -19777,3 +19777,12 @@ std::string CompilerGLSL::format_double(double value) const
 	return convert_to_string(value, current_locale_radix_character);
 }
 
+void CompilerGLSL::emit_terminate_ray(SPIRBlock&)
+{
+	statement("terminateRayEXT;");
+}
+
+void CompilerGLSL::emit_ignore_intersection(SPIRBlock&)
+{
+	statement("ignoreIntersectionEXT;");
+}

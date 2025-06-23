@@ -1349,6 +1349,9 @@ protected:
 	bool has_additional_fixed_sample_mask() const { return msl_options.additional_fixed_sample_mask != 0xffffffff; }
 	std::string additional_fixed_sample_mask_str() const;
 
+	void emit_terminate_ray(SPIRBlock &block) override;
+	void emit_ignore_intersection(SPIRBlock &block) override;
+
 	// OpcodeHandler that handles several MSL preprocessing operations.
 	struct OpCodePreprocessor : OpcodeHandler
 	{

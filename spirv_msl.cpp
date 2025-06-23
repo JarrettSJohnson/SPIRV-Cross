@@ -13845,6 +13845,10 @@ string CompilerMSL::func_type_decl(SPIRType &type)
 	case ExecutionModelTaskEXT:
 		entry_type = "[[object]]";
 		break;
+	case ExecutionModelAnyHitKHR:
+		entry_type = "[[stitchable]]";
+		return_type = "bool";
+		break;
 	case ExecutionModelCallableKHR:
 	case ExecutionModelMissKHR:
 		entry_type = "[[stitchable]]";
@@ -20178,4 +20182,16 @@ string CompilerMSL::additional_fixed_sample_mask_str() const
 #pragma warning(pop)
 #endif
 	return print_buffer;
+}
+
+void CompilerMSL::emit_terminate_ray(SPIRBlock&)
+{
+	// Commit this intersection.
+	statement("return true;");
+}
+
+void CompilerMSL::emit_ignore_intersection(SPIRBlock&)
+{
+	// Do not accept intersection.
+	statement("return false;");
 }

@@ -1070,6 +1070,9 @@ protected:
 	std::string format_float(float value) const;
 	std::string format_double(double value) const;
 
+	virtual void emit_terminate_ray(SPIRBlock &block);
+	virtual void emit_ignore_intersection(SPIRBlock &block);
+
 private:
 	void init();
 
