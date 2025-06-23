@@ -316,6 +316,7 @@ public:
 		uint32_t shader_input_buffer_index = 22;
 		uint32_t shader_index_buffer_index = 21;
 		uint32_t shader_patch_input_buffer_index = 20;
+		uint32_t raytracing_vft_miss_index = 19;
 		uint32_t shader_input_wg_index = 0;
 		uint32_t device_index = 0;
 		uint32_t enable_frag_output_mask = 0xffffffff;

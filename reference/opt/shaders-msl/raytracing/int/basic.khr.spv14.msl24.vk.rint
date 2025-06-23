@@ -1,0 +1,48 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Sphere
+{
+    float4 posRad;
+};
+
+struct Sphere_1
+{
+    float4 posRad;
+};
+
+struct Spheres
+{
+    Sphere_1 s[1];
+};
+
+struct spvPayloadPassthroughT {};
+
+struct spvBoundingBoxIntersection {
+   float t [[distance]];
+   bool accepted [[accept_intersection]];
+};
+
+[[stitchable]] spvBoundingBoxIntersection main0(device Spheres& spheres [[buffer(0)]], uint gl_PrimitiveID [[primitive_id]], float3 gl_WorldRayOriginNV [[origin]], float3 gl_WorldRayDirectionNV [[direction]], visible_function_table<bool(ray_data void*)> spvAnyHitVFT [[buffer(19)]], ray_data spvPayloadPassthroughT& spvPayloadPassthrough [[payload]], unsigned int spvInstanceId [[instance_id]])
+{
+    spvBoundingBoxIntersection spvIntersectionResult{};
+    Sphere _44;
+    _44.posRad = spheres.s[int(gl_PrimitiveID)].posRad;
+    float _71 = (_44.posRad.x + gl_WorldRayOriginNV.x) + gl_WorldRayDirectionNV.x;
+    if (_71 > 0.0)
+    {
+        float spvRayMinDistance{};
+        float spvRayMaxDistance{};
+        spvIntersectionResult.t = _71;
+        spvIntersectionResult.accepted = _71 >= spvRayMinDistance && _71 <= spvRayMaxDistance;
+        if (spvIntersectionResult.accepted) {
+            if (spvInstanceId != uint(-1)) {
+               spvIntersectionResult.accepted = spvAnyHitVFT[spvInstanceId](&spvPayloadPassthrough);
+            }
+        }
+    }
+    return spvIntersectionResult;
+}
+

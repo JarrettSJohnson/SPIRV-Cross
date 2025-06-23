@@ -1662,6 +1662,9 @@ void CompilerMSL::emit_entry_point_declarations()
 	// Holds SetMeshOutputsEXT information. Threadgroup since first thread wins.
 	if (processing_entry_point && is_mesh_shader())
 		statement("threadgroup uint2 spvMeshSizes;");
+
+	if (processing_entry_point && get_execution_model() == ExecutionModelIntersectionKHR)
+		statement("spvBoundingBoxIntersection spvIntersectionResult{};");
 }
 
 string CompilerMSL::compile()
@@ -8269,6 +8272,16 @@ void CompilerMSL::emit_resources()
 		          execution.output_primitives, ", ", topology, ">;");
 		statement("");
 	}
+	else if (get_execution_model() == ExecutionModelIntersectionKHR)
+	{
+		statement("struct spvPayloadPassthroughT {};");
+		statement("");
+		statement("struct spvBoundingBoxIntersection {");
+		statement("   float t [[distance]];");
+		statement("   bool accepted [[accept_intersection]];");
+		statement("};");
+		statement("");
+	}
 }
 
 // Emit declarations for the specialization Metal function constants
@@ -10532,6 +10545,25 @@ void CompilerMSL::emit_instruction(const Instruction &instruction)
 		emit_op(result_type, ret, exp, should_forward(value), should_forward(exp_value));
 		inherit_expression_dependencies(ret, value);
 		inherit_expression_dependencies(ret, exp_value);
+		break;
+	}
+
+	case OpReportIntersectionKHR:
+	{
+		/* | ResultType | Result | Hit | HitKind */
+		auto hit = ops[2];
+
+		auto hit_expr = to_unpacked_expression(hit);
+		statement("float spvRayMinDistance{};");
+		statement("float spvRayMaxDistance{};");
+		statement("spvIntersectionResult.t = ", hit_expr, ";");
+		statement("spvIntersectionResult.accepted = ", hit_expr,
+				  " >= spvRayMinDistance && ", hit_expr, " <= spvRayMaxDistance;");
+		statement("if (spvIntersectionResult.accepted) {");
+		statement("    if (spvInstanceId != uint(-1)) {");
+		statement("       spvIntersectionResult.accepted = spvAnyHitVFT[spvInstanceId](&spvPayloadPassthrough);");
+		statement("    }");
+		statement("}");
 		break;
 	}
 
@@ -13051,6 +13083,10 @@ void CompilerMSL::emit_fixup()
 		if (options.vertex.flip_vert_y)
 			statement(qual_pos_var_name, ".y = -(", qual_pos_var_name, ".y);", "    // Invert Y-axis for Metal");
 	}
+	if (get_execution_model() == ExecutionModelIntersectionKHR)
+	{
+		statement("return spvIntersectionResult;");
+	}
 }
 
 // Return a string defining a structure member, with padding and packing.
@@ -13849,6 +13885,10 @@ string CompilerMSL::func_type_decl(SPIRType &type)
 		entry_type = "[[stitchable]]";
 		return_type = "bool";
 		break;
+	case ExecutionModelIntersectionKHR:
+		entry_type = "[[stitchable]]";
+		return_type = "spvBoundingBoxIntersection";
+		break;
 	case ExecutionModelCallableKHR:
 	case ExecutionModelMissKHR:
 		entry_type = "[[stitchable]]";
@@ -14445,6 +14485,15 @@ void CompilerMSL::entry_point_args_builtin(string &ep_args)
 		if (!ep_args.empty())
 			ep_args += ", ";
 		ep_args += join("mesh_grid_properties spvMgp");
+	}
+
+	if (get_execution_model() == ExecutionModelIntersectionKHR) {
+		if (!ep_args.empty())
+			ep_args += ", ";
+		ep_args += join("visible_function_table<bool(ray_data void*)> spvAnyHitVFT [[buffer(",
+					msl_options.raytracing_vft_miss_index, ")]], ",
+					"ray_data spvPayloadPassthroughT& spvPayloadPassthrough [[payload]], ",
+					"unsigned int spvInstanceId [[instance_id]]");
 	}
 }
 
@@ -17673,6 +17722,9 @@ string CompilerMSL::builtin_qualifier(BuiltIn builtin)
 				SPIRV_CROSS_THROW("PrimitiveId on macOS requires MSL 2.2.");
 			return "primitive_id";
 		case ExecutionModelMeshEXT:
+		case ExecutionModelAnyHitKHR:
+		case ExecutionModelIntersectionKHR:
+		case ExecutionModelClosestHitKHR:
 			return "primitive_id";
 		default:
 			SPIRV_CROSS_THROW("PrimitiveId is not supported in this execution model.");
@@ -17814,6 +17866,12 @@ string CompilerMSL::builtin_qualifier(BuiltIn builtin)
 	case BuiltInCullPrimitiveEXT:
 		return "primitive_culled";
 
+	case BuiltInWorldRayOriginKHR:
+		return "origin";
+
+	case BuiltInWorldRayDirectionKHR:
+		return "direction";
+
 	default:
 		return "unsupported-built-in";
 	}
@@ -17937,6 +17995,10 @@ string CompilerMSL::builtin_type_decl(BuiltIn builtin, uint32_t id)
 		return "uint2";
 	case BuiltInPrimitiveTriangleIndicesEXT:
 		return "uint3";
+
+	case BuiltInWorldRayOriginKHR:
+	case BuiltInWorldRayDirectionKHR:
+		return "float3";
 
 	default:
 		return "unsupported-built-in-type";

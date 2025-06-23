@@ -1,0 +1,59 @@
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Sphere
+{
+    float4 posRad;
+};
+
+struct Sphere_1
+{
+    float4 posRad;
+};
+
+struct Spheres
+{
+    Sphere_1 s[1];
+};
+
+struct spvPayloadPassthroughT {};
+
+struct spvBoundingBoxIntersection {
+   float t [[distance]];
+   bool accepted [[accept_intersection]];
+};
+
+static inline __attribute__((always_inline))
+float sphereIntersect(Sphere sphere, thread const float3& rayOrigin, thread const float3& rayDirection)
+{
+    return (sphere.posRad.x + rayOrigin.x) + rayDirection.x;
+}
+
+[[stitchable]] spvBoundingBoxIntersection main0(device Spheres& spheres [[buffer(0)]], uint gl_PrimitiveID [[primitive_id]], float3 gl_WorldRayOriginNV [[origin]], float3 gl_WorldRayDirectionNV [[direction]], visible_function_table<bool(ray_data void*)> spvAnyHitVFT [[buffer(19)]], ray_data spvPayloadPassthroughT& spvPayloadPassthrough [[payload]], unsigned int spvInstanceId [[instance_id]])
+{
+    spvBoundingBoxIntersection spvIntersectionResult{};
+    Sphere _44;
+    _44.posRad = spheres.s[int(gl_PrimitiveID)].posRad;
+    Sphere sphere = _44;
+    float3 param = gl_WorldRayOriginNV;
+    float3 param_1 = gl_WorldRayDirectionNV;
+    float d = sphereIntersect(sphere, param, param_1);
+    if (d > 0.0)
+    {
+        float spvRayMinDistance{};
+        float spvRayMaxDistance{};
+        spvIntersectionResult.t = d;
+        spvIntersectionResult.accepted = d >= spvRayMinDistance && d <= spvRayMaxDistance;
+        if (spvIntersectionResult.accepted) {
+            if (spvInstanceId != uint(-1)) {
+               spvIntersectionResult.accepted = spvAnyHitVFT[spvInstanceId](&spvPayloadPassthrough);
+            }
+        }
+    }
+    return spvIntersectionResult;
+}
+
