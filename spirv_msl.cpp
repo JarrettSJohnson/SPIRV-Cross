@@ -13891,6 +13891,7 @@ string CompilerMSL::func_type_decl(SPIRType &type)
 		break;
 	case ExecutionModelCallableKHR:
 	case ExecutionModelMissKHR:
+	case ExecutionModelClosestHitKHR:
 		entry_type = "[[stitchable]]";
 		break;
 	default:
@@ -17872,6 +17873,15 @@ string CompilerMSL::builtin_qualifier(BuiltIn builtin)
 	case BuiltInWorldRayDirectionKHR:
 		return "direction";
 
+	case BuiltInRayTmaxKHR:
+		return "max_distance";
+
+	case BuiltInRayTminKHR:
+		return "min_distance";
+
+	case BuiltInInstanceCustomIndexKHR:
+		return "user_instance_id";
+
 	default:
 		return "unsupported-built-in";
 	}
@@ -17999,6 +18009,13 @@ string CompilerMSL::builtin_type_decl(BuiltIn builtin, uint32_t id)
 	case BuiltInWorldRayOriginKHR:
 	case BuiltInWorldRayDirectionKHR:
 		return "float3";
+
+	case BuiltInRayTmaxKHR:
+	case BuiltInRayTminKHR:
+		return "float";
+
+	case BuiltInInstanceCustomIndexKHR:
+		return "uint";
 
 	default:
 		return "unsupported-built-in-type";
